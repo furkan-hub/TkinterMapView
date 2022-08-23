@@ -45,7 +45,7 @@ class TkinterMapView(tkinter.Frame):
             # map widget is placed in a CTkFrame from customtkinter library
             if hasattr(self.master, "canvas") and hasattr(self.master, "fg_color"):
                 if type(self.master.fg_color) == tuple or type(self.master.fg_color) == list:
-                    self.bg_color: str = self.master.fg_color[self.master._appearance_mode]
+                    self.bg_color: str = self.master.fg_color[self.master.appearance_mode]
                 else:
                     self.bg_color: str = self.master.fg_color
 
@@ -115,7 +115,7 @@ class TkinterMapView(tkinter.Frame):
         self.not_loaded_tile_image = ImageTk.PhotoImage(Image.new("RGB", (self.tile_size, self.tile_size), (250, 250, 250)))  # only used when image not found on tile server
 
         # tile server and database
-        self.tile_server = "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        self.tile_server = "https://mt0.google.com/vt/lyrs=s&hl=en&x={x}&y={y}&z={z}&s=Ga"
         self.database_path = database_path
         self.use_database_only = use_database_only
         self.overlay_tile_server: Union[str, None] = None
@@ -232,14 +232,10 @@ class TkinterMapView(tkinter.Frame):
         self.overlay_tile_server = overlay_server
 
     def set_tile_server(self, tile_server: str, tile_size: int = 256, max_zoom: int = 19):
-        self.image_load_queue_tasks = []
         self.max_zoom = max_zoom
         self.tile_size = tile_size
         self.min_zoom = math.ceil(math.log2(math.ceil(self.width / self.tile_size)))
         self.tile_server = tile_server
-        self.tile_image_cache: Dict[str, PIL.ImageTk.PhotoImage] = {}
-        self.canvas.delete("tile")
-        self.image_load_queue_results = []
         self.draw_initial_array()
 
     def get_position(self) -> tuple:
@@ -269,6 +265,20 @@ class TkinterMapView(tkinter.Frame):
         self.draw_initial_array()
 
         return marker_object
+
+
+    def get_canvas_pos(self, position):
+        tile_position = decimal_to_osm(*position, round(self.zoom))
+
+        widget_tile_width = self.lower_right_tile_pos[0] - self.upper_left_tile_pos[0]
+        widget_tile_height = self.lower_right_tile_pos[1] - self.upper_left_tile_pos[1]
+
+        canvas_pos_x = ((tile_position[0] - self.upper_left_tile_pos[0]) / widget_tile_width) * self.width
+        canvas_pos_y = ((tile_position[1] - self.upper_left_tile_pos[1]) / widget_tile_height) * self.height
+
+        return canvas_pos_x, canvas_pos_y
+
+
 
     def set_address(self, address_string: str, marker: bool = False, text: str = None, **kwargs) -> CanvasPositionMarker:
         """ Function uses geocode service of OpenStreetMap (Nominatim).
@@ -421,7 +431,7 @@ class TkinterMapView(tkinter.Frame):
         # try to get the tile from the server
         try:
             url = self.tile_server.replace("{x}", str(x)).replace("{y}", str(y)).replace("{z}", str(zoom))
-            image = Image.open(requests.get(url, stream=True, headers={"User-Agent": "TkinterMapView"}).raw)
+            image = Image.open(requests.get(url, stream=True).raw)
 
             if self.overlay_tile_server is not None:
                 url = self.overlay_tile_server.replace("{x}", str(x)).replace("{y}", str(y)).replace("{z}", str(zoom))

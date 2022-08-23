@@ -11,8 +11,7 @@ from .utility_functions import decimal_to_osm, osm_to_decimal
 class CanvasPath:
     def __init__(self,
                  map_widget: "TkinterMapView",
-                 position_list,
-                 color="#3E69CB",
+                 position_list, color="#3E69CB",
                  command=None,
                  name=None,
                  data: any = None):
@@ -55,6 +54,7 @@ class CanvasPath:
 
         canvas_pos_x = ((tile_position[0] - self.map_widget.upper_left_tile_pos[0]) / widget_tile_width) * self.map_widget.width
         canvas_pos_y = ((tile_position[1] - self.map_widget.upper_left_tile_pos[1]) / widget_tile_height) * self.map_widget.height
+        
 
         return canvas_pos_x, canvas_pos_y
 
